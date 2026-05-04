@@ -94,7 +94,8 @@ Rules:
 """
 
     api_key = os.environ.get("API_KEY")
-    
+    if not api_key:
+        return jsonify({"error": "API key not set"})
 
     response = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
