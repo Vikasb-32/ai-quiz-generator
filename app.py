@@ -19,6 +19,13 @@ def init_db():
     )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS quizzes (
+        code TEXT PRIMARY KEY,
+        data TEXT
+    )
+    """)
+
     conn.commit()
     conn.close()
 init_db()
@@ -160,6 +167,39 @@ def get_results(code):
     result = [{"name": r[0], "score": r[1]} for r in rows]
 
     return jsonify(result)
+@app.route("/save_quiz", methods=["POST"])
+def save_quiz():
+    data = request.get_json()
+    code = data.get("code")
+    quiz_data = data.get("data")
+    
+    if not code or not quiz_data:
+        return jsonify({"error": "Missing code or data"}), 400
+
+    conn = sqlite3.connect("quiz.db")
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT OR REPLACE INTO quizzes (code, data) VALUES (?, ?)",
+        (code, json.dumps(quiz_data))
+    )
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"message": "Quiz saved successfully"})
+
+@app.route("/get_quiz/<code>")
+def get_quiz(code):
+    conn = sqlite3.connect("quiz.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT data FROM quizzes WHERE code = ?", (code,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        return jsonify({"data": json.loads(row[0])})
+    else:
+        return jsonify({"error": "Quiz not found"}), 404
+
 
 
 if __name__ == "__main__":
